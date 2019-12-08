@@ -29,8 +29,8 @@ all_sprites_list.add(cat)
 
 control = 0
 
-b = Bone("material/picture/bone.png")
-b.active = False
+bone = Bone("material/picture/bone.png")
+bone.active = False
 
 fish = Bone("material/picture/fish_bone.png")
 fish.active = False
@@ -38,17 +38,28 @@ fish.active = False
 
 def main():
     running = True
-    delay = 60  # 对一些效果进行延迟, 效果更好一些
-
+    delay = 60
+    power = 0
+    isDogRound = True
     while running:
 
-        # 绘制背景图
         screen.fill(WHITE)
 
         dog_rc = (255, 87, 51)
         dog_rp = (width / 2 - dog.life, 10)
         dog_rs = (dog.life, 20)
         pygame.draw.rect(screen, dog_rc, Rect(dog_rp, dog_rs))
+
+        if isDogRound:
+            dog_rc_power = (255, 87, 51)
+            dog_rp_power = (dog.rect.left, dog.rect.top)
+            dog_rs_power = (power, 5)
+            pygame.draw.rect(screen, dog_rc_power, Rect(dog_rp_power, dog_rs_power))
+        else:
+            cat_rc_power = (255, 87, 51)
+            cat_rp_power = (cat.rect.left, cat.rect.top - 5)
+            cat_rs_power = (power, 5)
+            pygame.draw.rect(screen, cat_rc_power, Rect(cat_rp_power, cat_rs_power))
 
         cat_rc = (255, 87, 51)
         cat_rp = (width / 2, 10)
@@ -62,49 +73,67 @@ def main():
 
         all_sprites_list.draw(screen)
 
-        # 微信的飞机貌似是喷气式的, 那么这个就涉及到一个帧数的问题
         clock = pygame.time.Clock()
         clock.tick(60)
 
         # collision detection
-        cat_hit = pygame.sprite.collide_mask(cat, b)
+        cat_hit = pygame.sprite.collide_mask(cat, bone)
         if cat_hit:
             cat.life -= 80
             if cat.life < 0:
                 cat.life = 0
-            b.update((-100, -100))
-            b.active = False
+            bone.update((-200, -100), power)
+            bone.active = False
         dog_hit = pygame.sprite.collide_mask(dog, fish)
         if dog_hit:
             dog.life -= 80
             if dog.life < 0:
                 dog.life = 0
-            fish.update((-100, -100))
+            fish.update((-200, -100), power)
             fish.active = False
+
+        if control == 2:
+            power += 2
+        elif power > 0:
+            if isDogRound:
+                bone.update(dog.rect.center, power)
+                bone.active = True
+                isDogRound = False
+            else:
+                fish.update(cat.rect.center, power)
+                fish.active = True
+                isDogRound = True
+            power = 0
 
         # 响应用户的操作
         for event in pygame.event.get():
-            if event.type == 12:  # 如果用户按下屏幕上的关闭按钮，触发QUIT事件，程序退出
+            if event.type == 12:
                 pygame.quit()
                 sys.exit()
-
+            if event.type == KEYDOWN:
+                if event.key == K_UP:
+                    power = 1
+            elif event.type == KEYUP:
+                if power > 0:
+                    if isDogRound:
+                        bone.update(dog.rect.center, power)
+                        bone.active = True
+                        isDogRound = False
+                    else:
+                        fish.update(cat.rect.center, power)
+                        fish.active = True
+                        isDogRound = True
+                    power = 0
         if delay == 0:
             delay = 60
         delay -= 1
-
-        key_pressed = pygame.key.get_pressed()
-        if key_pressed[K_UP]:
-            b.update(dog.rect.center)
-            b.active = True
-        if key_pressed[K_DOWN]:
-            fish.cat_update(cat.rect.center)
-            fish.active = True
-
-        if b.active:
-            b.move()
+        if power > 0:
+            power += 2
+        if bone.active:
+            bone.move()
         if fish.active:
             fish.move()
-        screen.blit(b.image, b.rect)
+        screen.blit(bone.image, bone.rect)
         screen.blit(fish.image, fish.rect)
         pygame.display.flip()
 
@@ -128,9 +157,9 @@ def listen_voice(threadName, delay):
         audio_data = np.fromstring(string_audio_data, dtype=np.short)
         value = np.max(audio_data)
         print(value)
-        if value >= 10000:
+        if value >= 18000:
             control = 1
-        elif value < 10000 and value >= 4000:
+        elif value < 18000 and value >= 2500:
             control = 2
         else:
             control = 0
