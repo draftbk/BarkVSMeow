@@ -117,7 +117,7 @@ def main():
         elif winner == 2:
             show_text("Dog wins!")
 
-        if control == 1:
+        if control == 1 and power == 0:
             if isDogRound and magic1.state == 2:
                 magic1.state -= 1
                 magic1.rect.left = -100
@@ -129,7 +129,7 @@ def main():
 
         if control == 2 and not bone.active and not fish.active:
             power += 2
-        elif power > 0:
+        if control ==0 and power > 0:
             if isDogRound:
                 bone.update(dog.rect.center, power)
                 bone.active = True
@@ -153,7 +153,7 @@ def main():
 
         if power > 0:
             power += 2
-        print(round_state)
+
         if bone.active:
             round_state = 1
             bone.move()

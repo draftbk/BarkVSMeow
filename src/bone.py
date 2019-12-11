@@ -20,7 +20,7 @@ class Bone(pygame.sprite.Sprite):
         self.road_number = 0
 
     def move(self):
-        if self.rect.left > 1280 or self.rect.left < -100 or self.rect.top > 700:
+        if self.rect.left > 1280 or self.rect.left < -100 or self.rect.top > 800:
             self.active = False
         else:
             self.rect.left, self.rect.top = self.road_x[self.road_number], self.road_y[self.road_number]
