@@ -11,6 +11,7 @@ import numpy as np
 from src.dog import Dog
 from src.cat import Cat
 from src.bone import Bone
+from src.magic import Magic
 
 WHITE = (255, 255, 255)
 
@@ -21,11 +22,20 @@ pygame.display.set_caption("BarkVSMeow")
 
 all_sprites_list = pygame.sprite.Group()
 
-dog = Dog(bg_size)
-cat = Cat(bg_size)
+dog = Dog()
+cat = Cat()
+
+magic1 = Magic("material/picture/bigger.png", (625 - 180, 50))
+magic2 = Magic("material/picture/times2.png", (625 - 130, 50))
+magic3 = Magic("material/picture/times2.png", (625 + 180, 50))
+magic4 = Magic("material/picture/bigger.png", (625 + 130, 50))
 
 all_sprites_list.add(dog)
 all_sprites_list.add(cat)
+all_sprites_list.add(magic1)
+# all_sprites_list.add(magic2)
+# all_sprites_list.add(magic3)
+all_sprites_list.add(magic4)
 
 control = 0
 
@@ -35,12 +45,16 @@ bone.active = False
 fish = Bone("material/picture/fish_bone.png")
 fish.active = False
 
+font = pygame.font.Font(None, 36)
+
 
 def main():
     running = True
     delay = 60
     power = 0
     isDogRound = True
+    winner = 0
+    round_state = 0
     while running:
 
         screen.fill(WHITE)
@@ -80,92 +94,118 @@ def main():
         cat_hit = pygame.sprite.collide_mask(cat, bone)
         if cat_hit:
             cat.life -= 80
+            if magic1.state == 1:
+                cat.life -= 160
             if cat.life < 0:
                 cat.life = 0
+                winner = 2
             bone.update((-200, -100), power)
             bone.active = False
+
         dog_hit = pygame.sprite.collide_mask(dog, fish)
         if dog_hit:
             dog.life -= 80
+            if magic4.state == 1:
+                dog.life -= 160
             if dog.life < 0:
                 dog.life = 0
+                winner = 1
             fish.update((-200, -100), power)
             fish.active = False
+        if winner == 1:
+            show_text("Cat wins!")
+        elif winner == 2:
+            show_text("Dog wins!")
 
-        if control == 2:
+        if control == 1:
+            if isDogRound and magic1.state == 2:
+                magic1.state -= 1
+                magic1.rect.left = -100
+                bone.image = pygame.image.load("material/picture/big_bone.png")
+            elif not isDogRound and magic4.state == 2:
+                magic4.state -= 1
+                magic4.rect.left = -100
+                fish.image = pygame.image.load("material/picture/big_fish_bone.png")
+
+        if control == 2 and not bone.active and not fish.active:
             power += 2
         elif power > 0:
             if isDogRound:
                 bone.update(dog.rect.center, power)
                 bone.active = True
-                isDogRound = False
+                # reset fish_bone
+                if magic4.state == 1 and fish.active == False:
+                    fish.image = pygame.image.load("material/picture/fish_bone.png")
+                    magic4.state = 0
             else:
                 fish.update(cat.rect.center, power)
                 fish.active = True
-                isDogRound = True
+                # reset bone
+                if magic1.state == 1 and bone.active == False:
+                    bone.image = pygame.image.load("material/picture/bone.png")
+                    magic1.state = 0
             power = 0
 
-        # 响应用户的操作
         for event in pygame.event.get():
             if event.type == 12:
                 pygame.quit()
                 sys.exit()
-            if event.type == KEYDOWN:
-                if event.key == K_UP:
-                    power = 1
-            elif event.type == KEYUP:
-                if power > 0:
-                    if isDogRound:
-                        bone.update(dog.rect.center, power)
-                        bone.active = True
-                        isDogRound = False
-                    else:
-                        fish.update(cat.rect.center, power)
-                        fish.active = True
-                        isDogRound = True
-                    power = 0
+
+        if power > 0:
+            power += 2
+        print(round_state)
+        if bone.active:
+            round_state = 1
+            bone.move()
+        if fish.active:
+            round_state = 1
+            fish.move()
+        if round_state == 1 and isDogRound and not bone.active:
+            isDogRound = False
+            round_state = 0
+        if round_state == 1 and not isDogRound and not fish.active:
+            isDogRound = True
+            round_state = 0
+
+        screen.blit(bone.image, bone.rect)
+        screen.blit(fish.image, fish.rect)
         if delay == 0:
             delay = 60
         delay -= 1
-        if power > 0:
-            power += 2
-        if bone.active:
-            bone.move()
-        if fish.active:
-            fish.move()
-        screen.blit(bone.image, bone.rect)
-        screen.blit(fish.image, fish.rect)
         pygame.display.flip()
 
 
-# 为线程定义一个函数
+def show_text(message):
+    text = font.render(message, True, (25, 25, 25))
+    text_rect = text.get_rect()
+    text_x = screen.get_width() / 2 - text_rect.width / 2
+    text_y = screen.get_height() / 2 - text_rect.height / 2
+    screen.blit(text, [text_x, text_y])
+
+
 def listen_voice(threadName, delay):
     global control
     # voice input
-    NUM_SAMPLES = 2000  # pyAudio内部缓存的块的大小
-    SAMPLING_RATE = 8000  # 取样频率
-    SAVE_LENGTH = 8  # 声音记录的最小长度：SAVE_LENGTH * NUM_SAMPLES 个取样
+    NUM_SAMPLES = 2000
+    SAMPLING_RATE = 8000
 
-    # 开启声音输入
     pa = PyAudio()
     stream = pa.open(format=paInt16, channels=1, rate=SAMPLING_RATE, input=True,
                      frames_per_buffer=NUM_SAMPLES)
     while 1:
-        # 读入NUM_SAMPLES个取样
         string_audio_data = stream.read(NUM_SAMPLES)
-        # 将读入的数据转换为数组
         audio_data = np.fromstring(string_audio_data, dtype=np.short)
         value = np.max(audio_data)
         print(value)
-        if value >= 18000:
+        if value >= 30000:
             control = 1
-        elif value < 18000 and value >= 2500:
+        elif value < 30000 and value >= 2000:
             control = 2
         else:
             control = 0
 
 
-# 创建两个线程
+# create a thread
 try:
     threading._start_new_thread(listen_voice, ("voice_listener", 2,))
 except:
