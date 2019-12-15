@@ -27,8 +27,8 @@ cat = Cat()
 
 magic1 = Magic("material/picture/bigger.png", (625 - 180, 50))
 magic2 = Magic("material/picture/times2.png", (625 - 130, 50))
-magic3 = Magic("material/picture/times2.png", (625 + 180, 50))
-magic4 = Magic("material/picture/bigger.png", (625 + 130, 50))
+magic3 = Magic("material/picture/times2.png", (625 + 130, 50))
+magic4 = Magic("material/picture/bigger.png", (625 + 180, 50))
 
 all_sprites_list.add(dog)
 all_sprites_list.add(cat)
@@ -50,11 +50,12 @@ font = pygame.font.Font(None, 36)
 
 def main():
     running = True
-    delay = 60
     power = 0
     isDogRound = True
     winner = 0
     round_state = 0
+
+
     while running:
 
         screen.fill(WHITE)
@@ -129,7 +130,7 @@ def main():
 
         if control == 2 and not bone.active and not fish.active:
             power += 2
-        if control ==0 and power > 0:
+        if control == 0 and power > 0:
             if isDogRound:
                 bone.update(dog.rect.center, power)
                 bone.active = True
@@ -145,11 +146,6 @@ def main():
                     bone.image = pygame.image.load("material/picture/bone.png")
                     magic1.state = 0
             power = 0
-
-        for event in pygame.event.get():
-            if event.type == 12:
-                pygame.quit()
-                sys.exit()
 
         if power > 0:
             power += 2
@@ -169,10 +165,12 @@ def main():
 
         screen.blit(bone.image, bone.rect)
         screen.blit(fish.image, fish.rect)
-        if delay == 0:
-            delay = 60
-        delay -= 1
         pygame.display.flip()
+        for event in pygame.event.get():
+            if event.type == 12:
+                pygame.quit()
+                sys.exit()
+
 
 
 def show_text(message):
